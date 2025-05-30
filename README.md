@@ -5,9 +5,13 @@ Ian's playgroup deep dive on LLMs day for 2025-06
 **THIS IS A WORK IN PROGRESS, DON'T PICK THIS UP YET**
 
 ```
+(note Ian first used conda create -n basepython312 python=3.12 to activate a python 3.12 env as 3.9 at least is too old for numpy)
 playgroup_llm_202506$ python -m venv ./.venv
 playgroup_llm_202506$ . .venv/bin/activate
+pip install -r requirements.txt
 ```
+
+** NOTE you'll need a `.env` file **
 
 # Running the code
 
