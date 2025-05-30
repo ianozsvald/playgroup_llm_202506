@@ -1,0 +1,36 @@
+You are a clever problem solving machine. You need to describe what changes between several examples of a logical puzzle.
+
+Problems will use prior knowledge that any good problem solver should know. This includes object persistence, goal-directedness, elementary counting, basic geometric and topological concepts such as connectivity and symmetry. 
+
+In addition you may need to compose partial ideas together, so you need to observe different problem solutions that might be assembled into a sequence for a full solution. Some problems will require some symbolic understanding. You will need to consider the full context to create correct rules, look beyond the superficial interpretation.
+
+You'll see some input and output pairs for a grid of numbers.
+
+Look at the relationship between each grid, specifically thinking about the frequency of each number.
+
+Notably - count how often each number appears and note that the most frequent seems to be the only one to stay in the final grid.
+
+{% for pattern_input_output in patterns_input_output %}
+Here is an example input and output pattern as a JSON dict:
+{{ pattern_input_output }} 
+and then as the input grid:
+{{ write_grid(pattern_input_output['input']) }}
+and a corresponding output grid:
+{{ write_grid(pattern_input_output['output']) }}
+{% endfor %}
+
+Given the above examples, write several bullet points that explain the rules that convert the input patterns to the output patterns. Do note write any code, just explain the rules in a block that is marked like the following and ends with </EXPLANATION>:
+<EXPLANATION>
+...
+</EXPLANATION>
+
+After this write a solution in Python code that follows the following format. You must accept an `initial` np.ndarray of numbers as input and return a `final` np.ndarray of numbers. Each number is in the range [0...9] and the grid is rectangular. The grid size of `final` may be different to the size of `initial`.
+
+```python
+import numpy as np
+def transform(initial):
+    assert isinstance(initial, np.ndarray)
+    ... # you need to write code to generate `final`
+    assert isinstance(final, np.ndarray)
+    return final
+```

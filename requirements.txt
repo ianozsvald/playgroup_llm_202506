@@ -1,0 +1,13 @@
+Jinja2
+ipython
+numpy==2.2.5
+black
+pytest
+GPUtil==1.4.0
+joblib==1.4.2
+dill==0.3.8
+#openai
+litellm
+dotenv
+isort
+pytest-cov

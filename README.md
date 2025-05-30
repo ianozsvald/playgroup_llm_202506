@@ -1,2 +1,36 @@
 # playgroup_llm_202506
+
 Ian's playgroup deep dive on LLMs day for 2025-06
+
+**THIS IS A WORK IN PROGRESS, DON'T PICK THIS UP YET**
+
+```
+playgroup_llm_202506$ python -m venv ./.venv
+playgroup_llm_202506$ . .venv/bin/activate
+```
+
+# Running the code
+
+* prompt.py - see how prompts render
+* run_code.py - execute code on a particular problem
+* method1_text_prompt.py - run a single prompt many times on 1 problem
+* method2_vllm.py - try an image representation on 1 problem
+* method3_reflexion.py - iterate with feedback on 1 problem
+* run_all_problems.py - run a set of problems once each using a method_
+
+# Tasks
+
+* Run prompt.py, see how it renders
+* Run run_code.py, try to run code (see test_run_code.py CODE_3 for a working solution, copy that to a local file)
+  * ASK yourself - if you have a code block that e.g. does `import scipy` which we don't have, do we report on those kinds of errors? You'll probably want to solve this at some point (maybe not yet)
+* Run method1 and try to get to a generalised prompt that can solve multiple problems without change, reliably
+  * `python method1_text_prompt.py -t prompt_baseline.txt -p 9565186b`
+  * try with `prompt_baseline_fullclue_956.txt` - but what's the point if we tell it the solution?
+  * try with the baseline on 0d3d703e
+    * `python method1_text_prompt.py -p 0d3d703e -t prompt_baseline.txt -i 5` how reliable is it?
+* Run method2, look at the description, this is using a fake image
+  * can we make it describe the image well?
+  * can we vibe-code an image generator for a specified problem?
+  * can we get it to write code?
+* Run method3, does giving feedback help? 
+* Run run_all_problems, automatically check a set of problems (and try the harder set when you're brave)
