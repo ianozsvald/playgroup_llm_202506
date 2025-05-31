@@ -157,9 +157,15 @@ def transform(initial):
     return np.float(1)"""
 
 
+def assert_no_transform_pollution():
+    assert 'transform' not in dir()
+    assert 'transform' not in globals()
+
+
 def test_exec_and_run():
     initial = [[1, 2], [3, 3]]
     code = ""
+    assert_no_transform_pollution()
     with pytest.raises(NameError):
         exec_and_run(code, initial)
 
@@ -167,6 +173,7 @@ def test_exec_and_run():
 def test_execute_transform_on_bad_fn():
     problem_train_test = utils.get_examples("9565186b")
     problems = problem_train_test["train"]
+    assert_no_transform_pollution()
 
     rr, execution_outcomes, exception_message = execute_transform(
         CODE_BADLY_NAMED_FN, problems

@@ -17,7 +17,7 @@ from run_code import execute_transform
 from utils import add_argument_parser, extract_from_code_block, write_grid
 
 # from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template
-
+from prompt_feedback import feedback_on_executions
 
 logger = logging.getLogger("my_logger")
 logger.setLevel(logging.DEBUG)
@@ -30,7 +30,7 @@ load_dotenv()
 # litellm._turn_on_debug()
 
 
-def feedback_on_prompt(rr_train):
+def fXXeedback_on_prompt(rr_train):
 
     # rr_eo is the RunResult ExecutionOutcome
     # and since we have 2-4 train examples, we'll have 2-4 rr_eo results
@@ -104,7 +104,7 @@ def run_reflexion(model, provider, llm_responses, template_name):
             # we've succeeded
             return rr_train
 
-        feedback = feedback_on_prompt(rr_train)
+        feedback = feedback_on_executions(rr_train)
         new_prompt = prompt + response.choices[0].message.content + feedback
         prompt = new_prompt
 
@@ -152,11 +152,12 @@ if __name__ == "__main__":
     )
 
     # show responses
-    print(
-        "\n--\n".join(
-            [response.choices[0].message.content for response in llm_responses]
-        )
-    )
+    #print("Responses from LLM:")
+    #print(
+    #    "\n--\n".join(
+    #        [response.choices[0].message.content for response in llm_responses]
+    #    )
+    #)
 
     # rr_trains[0][0].transform_ran_and_matched_for_all_inputs
     # rr_trains is the list of RunResult pairs for the training problems
