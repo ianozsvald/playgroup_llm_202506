@@ -1,14 +1,12 @@
 # GOAL
 # Can you make it describe any image pair for a single problem?
-
+from datetime import datetime
 import logging
 import os
 import sys
 import time
 from collections import Counter
 
-# from litellm import completion
-import litellm
 from dotenv import load_dotenv
 
 import utils
@@ -17,8 +15,6 @@ from litellm_helper import call_llm, check_litellm_key, disable_litellm_logging
 from prompt import get_func_dict, make_prompt
 from run_code import execute_transform
 from utils import encode_image_to_base64, extract_from_code_block
-
-# from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template
 
 
 logger = logging.getLogger("my_logger")
@@ -38,6 +34,7 @@ if __name__ == "__main__":
     print(args)
     check_litellm_key(args)
     utils.initial_log(logger, args)
+    start_dt = datetime.now()
 
     problems = utils.get_examples(args.problem_name)
 
@@ -91,10 +88,18 @@ if __name__ == "__main__":
     )
 
     # show responses
-    print(
-        "\n--\n".join(
-            [response.choices[0].message.content for response in llm_responses]
-        )
-    )
+    #print(
+    #    "\n--\n".join(
+    #        [response.choices[0].message.content for response in llm_responses]
+    #    )
+    #)
 
     print(f"Provider counts: {cnt_provider}")
+    
+    all_token_usages = [llm_response.usage.total_tokens for llm_response in llm_responses]
+    print(f"Max token usage on a call was {max(all_token_usages)}")
+    print(f"Median token usage on a call was {sorted(all_token_usages)[int(len(all_token_usages)/2)]}")
+    end_dt = datetime.now()
+    dt_delta = end_dt - start_dt
+    print(f"Experiment took {dt_delta}")
+

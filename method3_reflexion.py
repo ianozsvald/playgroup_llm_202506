@@ -4,7 +4,7 @@ import os
 import sys
 import time
 from collections import Counter
-
+from datetime import datetime
 # from litellm import completion
 # import litellm
 from dotenv import load_dotenv
@@ -132,6 +132,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     print(args)
+    start_dt = datetime.now()
 
     utils.initial_log(logger, args)
 
@@ -170,3 +171,10 @@ if __name__ == "__main__":
     cnt_provider = Counter([response.provider for response in llm_responses])
     # print(f"Provider counts: {cnt_provider}")
     logger.info(f"{cnt_provider=}")
+
+    all_token_usages = [llm_response.usage.total_tokens for llm_response in llm_responses]
+    print(f"Max token usage on a call was {max(all_token_usages)}")
+    print(f"Median token usage on a call was {sorted(all_token_usages)[int(len(all_token_usages)/2)]}")
+    end_dt = datetime.now()
+    dt_delta = end_dt - start_dt
+    print(f"Experiment took {dt_delta}")
