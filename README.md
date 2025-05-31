@@ -28,7 +28,9 @@ pip install -r requirements.txt
 * Run run_code.py, try to run code (see test_run_code.py CODE_3 for a working solution, copy that to a local file)
   * ASK yourself - if you have a code block that e.g. does `import scipy` which we don't have, do we report on those kinds of errors? You'll probably want to solve this at some point (maybe not yet)
 * Run method1 and try to get to a generalised prompt that can solve multiple problems without change, reliably
-  * `python method1_text_prompt.py -t prompt_baseline.txt -p 9565186b`
+  * `python method1_text_prompt.py -t prompt_baseline.txt -p 9565186b` -i 3
+    * What does it get wrong? Does it repeat itself?
+    * Is it fixating on what it first sees?
   * try with `prompt_baseline_fullclue_956.txt` - but what's the point if we tell it the solution?
   * try with the baseline on 0d3d703e
     * `python method1_text_prompt.py -p 0d3d703e -t prompt_baseline.txt -i 5` how reliable is it?

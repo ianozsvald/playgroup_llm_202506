@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 import utils
 from config import BREAK_IF_NOT_CHECKED_IN, providers
-from litellm_helper import call_llm, check_litellm_key
+from litellm_helper import call_llm, check_litellm_key, disable_litellm_logging
 from prompt import get_func_dict, make_prompt
 from run_code import execute_transform
 from utils import encode_image_to_base64, extract_from_code_block
