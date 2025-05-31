@@ -47,4 +47,7 @@ def call_llm(model, messages, provider):
             time.sleep(2)
         if response is not None:
             break
+    if response is None:
+        print("Failed to get a response after retries")
+        sys.exit(1)
     return response
