@@ -1,0 +1,15 @@
+{% set grid_method = make_grid_plain %}
+{% for rr_eo in rr_eos %}
+Given this input
+{{ grid_method(rr_eo.initial) }}
+and this expected output:
+{{ grid_method(rr_eo.final) }}
+you produced
+{{ grid_method(rr_eo.generated_final) }}
+
+{% if rr_eo.was_correct %}
+You got this example CORRECT, please preserve your logic so that this continues to work
+{% else %}
+You got this example WRONG, please improve your logic and code to fix it
+{% endif %}
+{% endfor %}
