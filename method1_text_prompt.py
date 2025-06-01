@@ -114,9 +114,13 @@ if __name__ == "__main__":
     cnt_provider = Counter([response.provider for response in llm_responses])
     print(f"Provider counts: {cnt_provider}")
 
-    all_token_usages = [llm_response.usage.total_tokens for llm_response in llm_responses]
+    all_token_usages = [
+        llm_response.usage.total_tokens for llm_response in llm_responses
+    ]
     print(f"Max token usage on a call was {max(all_token_usages)}")
-    print(f"Median token usage on a call was {sorted(all_token_usages)[int(len(all_token_usages)/2)]}")
+    print(
+        f"Median token usage on a call was {sorted(all_token_usages)[int(len(all_token_usages)/2)]}"
+    )
     end_dt = datetime.now()
     dt_delta = end_dt - start_dt
     print(f"Experiment took {dt_delta}")

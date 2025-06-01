@@ -16,8 +16,9 @@ logging.basicConfig(
     level=logging.INFO,  # Set minimum log level
     format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
     filename="experiment.log",  # File to write logs to
-    filemode="a", # ISSUE if this is 'w' then the log only persists during run and then is deleted?!  # Append mode with a (use 'w' to overwrite)
+    filemode="a",  # ISSUE if this is 'w' then the log only persists during run and then is deleted?!  # Append mode with a (use 'w' to overwrite)
 )
+
 
 def initial_log(logger, args):
     logger.info(f"{args=}")

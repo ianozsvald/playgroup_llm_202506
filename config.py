@@ -6,10 +6,10 @@
 BREAK_IF_NOT_CHECKED_IN = False
 
 providers = {
+    # Llama 4 Scout is multimodal (text and image)
     "openrouter/meta-llama/llama-4-scout":
     # on OpenRouter limit to certain providers as the variety that's available
     # will use various quantisations context sizes
-    # DeepInfra is a sensible choice with useful limits
     # provider https://openrouter.ai/docs/features/provider-routing#example-specifying-providers-with-fallbacks-disabled
     {
         "order": [
@@ -24,6 +24,7 @@ providers = {
         ],
         "allow_fallbacks": False,  # only use specified providers
     },
+    # DeepSeek V3 0324 is probably better than DeepSeek R1
     "openrouter/deepseek/deepseek-chat-v3-0324": {
         "order": [
             "deepinfra/fp8",  # "DeepInfra",  # fp8, 164k, 164k
@@ -32,6 +33,7 @@ providers = {
         ],
         "allow_fallbacks": False,
     },
+    # Opus 4 is multimodal (text and image)
     "openrouter/anthropic/claude-opus-4": {
         "order": [
             "anthropic",  # 200k, 32k
@@ -39,4 +41,11 @@ providers = {
         ],
         "allow_fallbacks": False,
     },
+    # GPT 4o, multimodal
+    # https://openrouter.ai/openai/gpt-4o/api
+    # GPT o3 - needs private (2nd) OpenAI key so I'm ignoring it
+    # GPT o1-pro is crazy expensive! Multimodal
+    # https://openrouter.ai/openai/o1-pro
+    # GPT o1 is more like Opus 4 on pricing, multimodal
+    # https://openrouter.ai/openai/o1
 }

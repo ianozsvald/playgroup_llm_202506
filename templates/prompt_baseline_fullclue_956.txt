@@ -10,8 +10,7 @@ Look at the relationship between each grid, specifically thinking about the freq
 
 Notably - count how often each number appears and note that the most frequent seems to be the only one to stay in the final grid.
 
-{% set grid_method = make_grid_plain %}
-
+{% set grid_method = make_grid_plain -%}
 {% for pattern_input_output in patterns_input_output %}
 Here is an example input and output pattern as a JSON dict:
 {{ pattern_input_output }} 
@@ -19,7 +18,7 @@ and then as the input grid:
 {{ grid_method(pattern_input_output['input']) }}
 and a corresponding output grid:
 {{ grid_method(pattern_input_output['output']) }}
-{% endfor %}
+{% endfor -%}
 
 Given the above examples, write several bullet points that explain the rules that convert the input patterns to the output patterns. Do note write any code, just explain the rules in a block that is marked like the following and ends with </EXPLANATION>:
 <EXPLANATION>
@@ -36,3 +35,4 @@ def transform(initial):
     assert isinstance(final, np.ndarray)
     return final
 ```
+

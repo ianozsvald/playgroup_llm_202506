@@ -158,8 +158,8 @@ def transform(initial):
 
 
 def assert_no_transform_pollution():
-    assert 'transform' not in dir()
-    assert 'transform' not in globals()
+    assert "transform" not in dir()
+    assert "transform" not in globals()
 
 
 def test_exec_and_run():

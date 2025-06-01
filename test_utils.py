@@ -3,9 +3,14 @@ import numpy as np
 import pytest
 
 from utils import (  # count_items_in_grid,; determine_count_changes_between_grids,
-    ExecutionOutcome, extract_from_code_block, extract_json_from_response,
-    get_grid_size, make_grid_plain, make_list_of_lists,
-    parse_response_for_function)
+    ExecutionOutcome,
+    extract_from_code_block,
+    extract_json_from_response,
+    get_grid_size,
+    make_grid_plain,
+    make_list_of_lists,
+    parse_response_for_function,
+)
 
 # this works but can't detect ///python on a line
 GRID_EXS = [
