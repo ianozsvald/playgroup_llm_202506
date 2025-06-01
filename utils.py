@@ -29,7 +29,8 @@ def initial_log(logger, args):
 def get_examples(pattern_name):
     """Load arc examples, return the requested example"""
     # path = "/media/ian/data/llms/kaggle/202406_arc/ARC-AGI/data/training"
-    path = "/media/ian/data/llms/kaggle/202503_arc_2025/arc-prize-2025"
+    #path = "/media/ian/data/llms/kaggle/202503_arc_2025/arc-prize-2025"
+    path = "./arc_data/arc-prize-2025"
     training_name = "arc-agi_training_challenges.json"
     filename = PurePath(path, training_name)
     # fully_filename = PurePath(path, pattern_name)
