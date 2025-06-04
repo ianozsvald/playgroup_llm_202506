@@ -37,24 +37,25 @@ def get_func_dict():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)  # read __doc__ attribute
-    parser.add_argument(
-        "-p",
-        "--problem_name",
-        type=str,
-        nargs="?",
-        help="name of an ARC AGI problem e.g. 9565186b"
-        " (default: %(default)s))",  # help msg 2 over lines with default
-        default="9565186b",
-    )
-    parser.add_argument(
-        "-t",
-        "--template_name",
-        type=str,
-        nargs="?",
-        help="template to use in ./templates/",
-        default="prompt1.txt",
-    )
+    parser = utils.add_argument_parser(problem_name=True, template_name=True)
+    #parser = argparse.ArgumentParser(description=__doc__)  # read __doc__ attribute
+    #parser.add_argument(
+    #    "-p",
+    #    "--problem_name",
+    #    type=str,
+    #    nargs="?",
+    #    help="name of an ARC AGI problem e.g. 9565186b"
+    #    " (default: %(default)s))",  # help msg 2 over lines with default
+    #    default="9565186b",
+    #)
+    #parser.add_argument(
+    #    "-t",
+    #    "--template_name",
+    #    type=str,
+    #    nargs="?",
+    #    help="template to use in ./templates/",
+    #    default="prompt1.txt",
+    #)
 
     args = parser.parse_args()
     print(args)
