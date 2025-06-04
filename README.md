@@ -42,4 +42,4 @@ pip install -r requirements.txt
   * can we make it describe the image well?
   * can we vibe-code an image generator for a specified problem?
   * can we get it to write code?
-* Run `method3...`, does giving feedback help? 
+* Run `python method3_reflexion.py`, does giving feedback help? 
