@@ -27,6 +27,8 @@ pip install -r requirements.txt
 * Run `method0_check_openrouter.py` to check you have a valid `.env` file
 * Run `prompt.py`, see how it renders
 * Run `run_code.py`, try to run code (see test_run_code.py CODE_3 for a working solution, copy that to a local file)
+  * cp CODE_3 into a local file e.g. 'code3_test.py' and use `-c` to pass this in, `/tmp/solution.py` is the default
+  * you can try different problems and e.g. broken code
   * ASK yourself - if you have a code block that e.g. does `import scipy` which we don't have, do we report on those kinds of errors? You'll probably want to solve this at some point (maybe not yet)
 * Run method1 and try to get to a generalised prompt that can solve multiple problems without change, reliably
   * `python method1_text_prompt.py -t prompt_baseline.txt -p 9565186b -i 3`
