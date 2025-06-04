@@ -37,9 +37,9 @@ pip install -r requirements.txt
   * try with `prompt_baseline_fullclue_956.txt` - but what's the point if we tell it the solution?
   * try with the baseline on 0d3d703e
     * `python method1_text_prompt.py -p 0d3d703e -t prompt_baseline.txt -i 5` how reliable is it?
-* Run `method2...`, look at the description, this is using a fake image
+* Run `run_all_problems.py`, automatically check a set of problems (and try the harder set when you're brave)
+* Run `python method2_vllm.py -t prompt_baseline_vllm.txt`, look at the description, this is using a fake image
   * can we make it describe the image well?
   * can we vibe-code an image generator for a specified problem?
   * can we get it to write code?
 * Run `method3...`, does giving feedback help? 
-* Run `run_all_problems.py`, automatically check a set of problems (and try the harder set when you're brave)

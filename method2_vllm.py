@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # HERE WE HARDCODE A SINGLE IMAGE-PAIR
     # YOU NEED TO REPLACE THIS WITH A FUNCTION TO MAKE IMAGES
     image_path = "test_images/small_problem_pair.png"
+    print(f"Using {image_path=}")
     base64_image = encode_image_to_base64(image_path)
     data_url = f"data:image/jpeg;base64,{base64_image}"
 
@@ -62,7 +63,7 @@ if __name__ == "__main__":
         },
     ]
     messages = [{"content": content, "role": "user"}]
-    # print(f"{messages=}")
+    print(f"{messages=}") # TODO COMMENT THIS OUT AS IT'LL SHOW BASE64 IMAGE DATA
     model = args.model_name
 
     llm_responses = []
