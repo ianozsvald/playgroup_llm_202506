@@ -24,6 +24,7 @@ pip install -r requirements.txt
 
 # Tasks
 
+* Run `method0_check_openrouter.py` to check you have a valid `.env` file
 * Run `prompt.py`, see how it renders
 * Run `run_code.py`, try to run code (see test_run_code.py CODE_3 for a working solution, copy that to a local file)
   * ASK yourself - if you have a code block that e.g. does `import scipy` which we don't have, do we report on those kinds of errors? You'll probably want to solve this at some point (maybe not yet)
