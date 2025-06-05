@@ -11,7 +11,7 @@ from run_code import execute_transform
 from prompt import make_prompt, get_func_dict
 from method1_text_prompt import run_experiment_for_iterations
 from config import providers
-from litellm_helper import check_litellm_key
+from litellm_helper import check_litellm_key, call_llm
 import argparse
 
 # Configure page
@@ -318,8 +318,14 @@ def main():
     st.header(f"Problem: {selected_problem}")
 
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["📋 Problem View", "💻 Code Editor", "🤖 LLM Assistant", "📊 Results"]
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        [
+            "📋 Problem View",
+            "💻 Code Editor",
+            "🤖 LLM Assistant",
+            "✍️ Prompt Lab",
+            "📊 Results",
+        ]
     )
 
     with tab1:
@@ -568,6 +574,328 @@ def main():
                     st.code(traceback.format_exc())
 
     with tab4:
+        st.subheader("✍️ Prompt Lab")
+        st.write("Create, edit, test, and save custom prompts for LLM code generation")
+
+        # Template management section
+        st.write("### Template Management")
+
+        col1, col2, col3 = st.columns([2, 1, 1])
+
+        with col1:
+            # Template selection
+            template_files = [f.name for f in Path("templates").glob("*.txt")]
+            if template_files:
+                selected_template_lab = st.selectbox(
+                    "Load existing template:",
+                    ["Create new..."] + template_files,
+                    key="template_lab_selector",
+                )
+            else:
+                selected_template_lab = "Create new..."
+                st.info("No existing templates found")
+
+        with col2:
+            if st.button(
+                "📁 Load Template", help="Load the selected template for editing"
+            ):
+                if selected_template_lab != "Create new...":
+                    try:
+                        template_path = f"templates/{selected_template_lab}"
+                        with open(template_path, "r") as f:
+                            template_content = f.read()
+                        st.session_state.custom_prompt = template_content
+                        st.session_state.custom_prompt_name = (
+                            selected_template_lab.replace(".txt", "")
+                        )
+                        st.success(f"Loaded template: {selected_template_lab}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error loading template: {e}")
+
+        with col3:
+            # Template name input
+            if "custom_prompt_name" not in st.session_state:
+                st.session_state.custom_prompt_name = "my_custom_prompt"
+
+            new_name = st.text_input(
+                "Template name:",
+                value=st.session_state.custom_prompt_name,
+                key="prompt_name_input",
+                help="Name for saving the template (without .txt extension)",
+            )
+            st.session_state.custom_prompt_name = new_name
+
+        # Template editor
+        st.write("### Template Editor")
+
+        # Initialize custom prompt if not exists
+        if "custom_prompt" not in st.session_state:
+            # Default template
+            st.session_state.custom_prompt = """You are a clever problem solving machine. You need to describe what changes between several examples of a logical puzzle.
+
+Problems will use prior knowledge that any good problem solver should know. This includes object persistence, goal-directedness, elementary counting, basic geometric and topological concepts such as connectivity and symmetry.
+
+You'll see some input and output pairs for a grid of numbers.
+
+{% set grid_method = make_grid_plain -%}
+{% for pattern_input_output in patterns_input_output %}
+Here is an example input and output pattern as a JSON dict:
+{{ pattern_input_output }}
+and then as the input grid:
+{{ grid_method(pattern_input_output['input']) }}
+and a corresponding output grid:
+{{ grid_method(pattern_input_output['output']) }}
+{% endfor -%}
+
+Given the above examples, write several bullet points that explain the rules that convert the input patterns to the output patterns.
+
+After this write a solution in Python code that follows the following format. You must accept an `initial` np.ndarray of numbers as input and return a `final` np.ndarray of numbers. Each number is in the range [0...9] and the grid is rectangular.
+
+```python
+import numpy as np
+def transform(initial):
+    assert isinstance(initial, np.ndarray)
+    ... # you need to write code to generate `final`
+    assert isinstance(final, np.ndarray)
+    return final
+```"""
+
+        # Template editor with syntax help
+        col_editor, col_help = st.columns([2, 1])
+
+        with col_editor:
+            custom_prompt = st.text_area(
+                "Prompt Template (Jinja2 format):",
+                value=st.session_state.custom_prompt,
+                height=400,
+                help="Use Jinja2 syntax. Available variables: patterns_input_output, grid formatting functions",
+            )
+            st.session_state.custom_prompt = custom_prompt
+
+        with col_help:
+            st.write("**Available Variables:**")
+            st.code("{{ patterns_input_output }}", language="jinja2")
+            st.write("List of input/output pattern dicts")
+
+            st.write("**Grid Formatting Functions:**")
+            st.code("{{ make_grid_plain(grid) }}", language="jinja2")
+            st.write("Simple grid: 123\\n456")
+
+            st.code("{{ make_grid_csv(grid) }}", language="jinja2")
+            st.write("CSV format: 1, 2, 3\\n4, 5, 6")
+
+            st.code("{{ make_grid_csv_quoted(grid) }}", language="jinja2")
+            st.write('Quoted CSV: "1", "2", "3"')
+
+            st.code("{{ make_grid_csv_english_words(grid) }}", language="jinja2")
+            st.write("Words: one, two, three")
+
+            st.write("**Jinja2 Syntax:**")
+            st.code(
+                """{% for item in list %}
+{{ item }}
+{% endfor %}""",
+                language="jinja2",
+            )
+
+            st.code("{% set var = value %}", language="jinja2")
+
+        # Template preview and testing
+        st.write("### Template Preview & Testing")
+
+        col_preview, col_test = st.columns([1, 1])
+
+        with col_preview:
+            if st.button(
+                "🔍 Preview Prompt",
+                help="Preview how the prompt will look with current problem data",
+            ):
+                if problem_data:
+                    try:
+                        from jinja2 import Environment, BaseLoader, Template
+
+                        # Create template
+                        template = Template(custom_prompt)
+                        func_dict = get_func_dict()
+                        template.globals.update(func_dict)
+
+                        # Render with current problem data
+                        rendered_prompt = template.render(
+                            patterns_input_output=problem_data["train"]
+                        )
+
+                        st.success("✅ Template rendered successfully!")
+
+                        with st.expander("Preview Rendered Prompt", expanded=True):
+                            st.text_area(
+                                "Rendered Prompt:",
+                                value=rendered_prompt,
+                                height=300,
+                                disabled=True,
+                            )
+
+                        # Store for testing
+                        st.session_state.preview_prompt = rendered_prompt
+
+                    except Exception as e:
+                        st.error(f"❌ Template rendering failed: {e}")
+                        st.code(str(e))
+                else:
+                    st.warning("Please select a problem first to preview the template")
+
+        with col_test:
+            if st.button(
+                "🧪 Test Prompt",
+                help="Test the prompt with LLM and execute generated code",
+            ):
+                if problem_data and st.session_state.get("preview_prompt"):
+                    with st.spinner("Testing prompt with LLM..."):
+                        try:
+                            # Get LLM settings from main tab
+                            model_options = list(providers.keys())
+                            test_model = model_options[0] if model_options else None
+
+                            if test_model:
+                                # Create messages for LLM
+                                content = [
+                                    {
+                                        "type": "text",
+                                        "text": st.session_state.preview_prompt,
+                                    }
+                                ]
+                                messages = [{"content": content, "role": "user"}]
+
+                                # Call LLM
+                                response = call_llm(
+                                    test_model, messages, providers[test_model]
+                                )
+
+                                if response:
+                                    st.success("✅ LLM responded successfully!")
+
+                                    # Show response
+                                    with st.expander("LLM Response", expanded=False):
+                                        st.write(response.choices[0].message.content)
+
+                                    # Extract and test code
+                                    code_as_string = utils.extract_from_code_block(
+                                        response.choices[0].message.content
+                                    )
+
+                                    if code_as_string:
+                                        st.info(
+                                            "🔧 Code extracted, testing execution..."
+                                        )
+
+                                        # Execute code
+                                        train_problems = problem_data["train"]
+                                        rr, execution_outcomes, exception_message = (
+                                            execute_transform(
+                                                code_as_string, train_problems
+                                            )
+                                        )
+
+                                        # Show quick results
+                                        col_result1, col_result2, col_result3 = (
+                                            st.columns(3)
+                                        )
+                                        with col_result1:
+                                            st.metric(
+                                                "Code Executed",
+                                                "✅" if rr.code_did_execute else "❌",
+                                            )
+                                        with col_result2:
+                                            st.metric(
+                                                "All Correct",
+                                                (
+                                                    "✅"
+                                                    if rr.transform_ran_and_matched_for_all_inputs
+                                                    else "❌"
+                                                ),
+                                            )
+                                        with col_result3:
+                                            st.metric(
+                                                "Score",
+                                                f"{rr.transform_ran_and_matched_score}/{len(execution_outcomes) if execution_outcomes else 0}",
+                                            )
+
+                                        # Store results for detailed view
+                                        st.session_state.prompt_test_results = (
+                                            rr,
+                                            execution_outcomes,
+                                            exception_message,
+                                            response,
+                                            code_as_string,
+                                        )
+
+                                        if exception_message:
+                                            st.error(
+                                                f"Execution error: {exception_message}"
+                                            )
+                                    else:
+                                        st.warning(
+                                            "⚠️ No code block found in LLM response"
+                                        )
+                                else:
+                                    st.error("❌ No response from LLM")
+                            else:
+                                st.error("❌ No LLM models configured")
+
+                        except Exception as e:
+                            st.error(f"❌ Test failed: {e}")
+                            st.code(traceback.format_exc())
+                else:
+                    st.warning("Please preview the prompt first, then test")
+
+        # Save template
+        st.write("### Save Template")
+        col_save, col_info = st.columns([1, 2])
+
+        with col_save:
+            if st.button(
+                "💾 Save Template",
+                help="Save the current template to templates/ directory",
+            ):
+                if st.session_state.custom_prompt_name.strip():
+                    try:
+                        filename = f"templates/{st.session_state.custom_prompt_name.strip()}.txt"
+                        with open(filename, "w") as f:
+                            f.write(st.session_state.custom_prompt)
+                        st.success(f"✅ Template saved as: {filename}")
+                    except Exception as e:
+                        st.error(f"❌ Save failed: {e}")
+                else:
+                    st.warning("Please enter a template name")
+
+        with col_info:
+            st.info(
+                "💡 **Tip**: Saved templates will appear in the LLM Assistant tab for use"
+            )
+
+        # Show detailed test results if available
+        if st.session_state.get("prompt_test_results"):
+            st.write("### Latest Test Results")
+            rr, execution_outcomes, exception_message, response, code_as_string = (
+                st.session_state.prompt_test_results
+            )
+
+            with st.expander("Detailed Test Results", expanded=False):
+                # Show extracted code
+                st.write("**Extracted Code:**")
+                st.code(code_as_string, language="python")
+
+                # Show execution results
+                if execution_outcomes:
+                    st.write("**Execution Results:**")
+                    for i, eo in enumerate(execution_outcomes):
+                        st.write(f"Example {i+1}: {'✅' if eo.was_correct else '❌'}")
+
+                # Token usage
+                if hasattr(response, "usage") and response.usage:
+                    st.write(f"**Token Usage:** {response.usage.total_tokens} tokens")
+
+    with tab5:
         st.subheader("📊 Analysis & Statistics")
 
         if st.session_state.get("has_results", False):
