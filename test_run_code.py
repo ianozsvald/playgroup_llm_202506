@@ -156,6 +156,77 @@ CODE_GOOD_RETURNS_NON2DARRAY_SCALAR = """
 def transform(initial):
     return np.float(1)"""
 
+# Additional test cases
+CODE_SYNTAX_ERROR = """
+def transform(initial):
+    return initial +
+"""
+
+CODE_INFINITE_LOOP = """
+def transform(initial):
+    while True:
+        pass
+    return initial
+"""
+
+CODE_RETURNS_NONE = """
+def transform(initial):
+    # Forgot to return anything
+    pass
+"""
+
+CODE_RETURNS_WRONG_SHAPE = """
+def transform(initial):
+    # Return different shape than input
+    return np.zeros((5, 5))
+"""
+
+CODE_MODIFIES_INPUT = """
+def transform(initial):
+    # Modifies input in place (bad practice but should still work)
+    initial[0, 0] = 999
+    return initial
+"""
+
+CODE_USES_PRINT = """
+def transform(initial):
+    print("Debug output")
+    print(f"Shape: {initial.shape}")
+    return initial
+"""
+
+CODE_IMPORTS_FORBIDDEN = """
+def transform(initial):
+    import os
+    os.system("echo 'hello'")  # Potentially dangerous
+    return initial
+"""
+
+CODE_MEMORY_HOG = """
+def transform(initial):
+    # Try to allocate huge array
+    huge = np.zeros((10000, 10000, 10000))
+    return initial
+"""
+
+CODE_DIFFERENT_DTYPES = """
+def transform(initial):
+    # Return float array instead of int
+    return initial.astype(np.float64)
+"""
+
+CODE_3D_ARRAY = """
+def transform(initial):
+    # Return 3D array
+    return np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+"""
+
+CODE_EMPTY_ARRAY = """
+def transform(initial):
+    # Return empty array
+    return np.array([])
+"""
+
 
 def assert_no_transform_pollution():
     assert "transform" not in dir()
@@ -294,3 +365,176 @@ def test_execute_transform_weird_results():
     assert rr.transform_ran_and_matched_for_all_inputs is False
     assert rr.transform_ran_and_matched_at_least_once is False
     assert rr.transform_ran_and_matched_score == 0
+
+
+def test_syntax_error():
+    """Test handling of syntax errors in code"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_SYNTAX_ERROR, problems
+    )
+    assert rr.code_did_execute is False
+    assert rr.code_ran_on_all_inputs is False
+    assert "SyntaxError" in exception_message
+    assert len(execution_outcomes) == 0
+
+
+def test_infinite_loop_timeout():
+    """Test that infinite loops are caught by timeout"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_INFINITE_LOOP, problems
+    )
+    # The code should execute but timeout when running
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is False
+    assert len(execution_outcomes) == 0
+
+
+def test_returns_none():
+    """Test handling when transform returns None"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_RETURNS_NONE, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is False
+    assert "Expecting `transform` to return a numpy array" in exception_message
+
+
+def test_returns_wrong_shape():
+    """Test when transform returns array of wrong shape"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_RETURNS_WRONG_SHAPE, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is True
+    assert rr.transform_ran_and_matched_for_all_inputs is False
+    # Should run but not match
+    for eo in execution_outcomes:
+        assert not eo.was_correct
+
+
+def test_modifies_input():
+    """Test code that modifies input array (should still work)"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_MODIFIES_INPUT, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is True
+    # Won't match because we're modifying the array
+    assert rr.transform_ran_and_matched_for_all_inputs is False
+
+
+def test_code_with_print():
+    """Test that code with print statements still works"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_USES_PRINT, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is True
+    # Should work but not match (returns input unchanged)
+    assert len(execution_outcomes) == 4
+
+
+def test_different_dtypes():
+    """Test when transform returns different dtype"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_DIFFERENT_DTYPES, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is True
+    # May or may not match depending on how equality is checked
+    assert len(execution_outcomes) == 4
+
+
+def test_returns_3d_array():
+    """Test when transform returns 3D array instead of 2D"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_3D_ARRAY, problems
+    )
+    assert rr.code_did_execute is True
+    # Should fail because it's not 2D
+    assert rr.transform_ran_and_matched_for_all_inputs is False
+
+
+def test_returns_empty_array():
+    """Test when transform returns empty array"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_EMPTY_ARRAY, problems
+    )
+    assert rr.code_did_execute is True
+    # Should fail because empty array doesn't match expected output
+    assert rr.transform_ran_and_matched_for_all_inputs is False
+
+
+def test_scalar_return():
+    """Test handling when transform returns a scalar"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_GOOD_RETURNS_NON2DARRAY_SCALAR, problems
+    )
+    assert rr.code_did_execute is True
+    assert rr.code_ran_on_all_inputs is False
+    assert "Expecting `transform` to return a numpy array" in exception_message
+
+
+def test_memory_intensive_code():
+    """Test code that tries to allocate too much memory"""
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"][:1]  # Just use one problem to be faster
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        CODE_MEMORY_HOG, problems
+    )
+    assert rr.code_did_execute is True
+    # Should fail with MemoryError or similar
+    assert rr.code_ran_on_all_inputs is False
+
+
+def test_multiple_problems_partial_success():
+    """Test when code works for some problems but not others"""
+    # Create a custom code that will fail on certain inputs
+    code_partial = """
+def transform(initial):
+    # This will fail if the array contains values > 5
+    assert initial.max() <= 5, "Values too large"
+    return initial
+"""
+    
+    problem_train_test = utils.get_examples("9565186b")
+    problems = problem_train_test["train"]
+    
+    rr, execution_outcomes, exception_message = execute_transform(
+        code_partial, problems
+    )
+    assert rr.code_did_execute is True
+    # May or may not run on all inputs depending on the data
+    # But definitely won't match all
+    assert rr.transform_ran_and_matched_for_all_inputs is False
