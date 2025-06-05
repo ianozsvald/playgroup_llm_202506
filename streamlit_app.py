@@ -338,7 +338,7 @@ def main():
         st.write("Write your `transform` function to solve the problem:")
 
         # Add example code loader
-        col_a, col_b = st.columns([1, 1])
+        col_a, col_b, col_c = st.columns([1, 1, 1])
         with col_a:
             if st.button(
                 "📄 Load Example Code",
@@ -354,6 +354,45 @@ def main():
                     st.error(f"Error loading example code: {e}")
 
         with col_b:
+            # Load saved generated code
+            saved_code_files = []
+            if Path("saved_code").exists():
+                saved_code_files = [f.name for f in Path("saved_code").glob("*.py")]
+
+            if saved_code_files:
+                selected_saved_code = st.selectbox(
+                    "Load saved code:",
+                    ["Select..."] + saved_code_files,
+                    key="saved_code_selector",
+                    help="Load previously saved generated code",
+                )
+
+                if st.button("📂 Load Saved", help="Load the selected saved code"):
+                    if selected_saved_code != "Select...":
+                        try:
+                            with open(f"saved_code/{selected_saved_code}", "r") as f:
+                                saved_code_content = f.read()
+
+                            # Extract just the code part (remove metadata comments)
+                            lines = saved_code_content.split("\n")
+                            code_start = 0
+                            for i, line in enumerate(lines):
+                                if line.strip() and not line.strip().startswith("#"):
+                                    code_start = i
+                                    break
+
+                            clean_code = "\n".join(lines[code_start:])
+                            st.session_state.user_code = clean_code
+                            st.success(f"Loaded saved code: {selected_saved_code}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error loading saved code: {e}")
+                    else:
+                        st.warning("Please select a saved code file")
+            else:
+                st.info("No saved code found")
+
+        with col_c:
             if st.button("🔄 Reset to Default", help="Reset to the default template"):
                 st.session_state.user_code = get_default_code()
                 st.success("Reset to default template!")
@@ -829,6 +868,56 @@ def transform(initial):
                                             code_as_string,
                                         )
 
+                                        # Add option to save the generated code
+                                        st.write("**💾 Save Generated Code:**")
+                                        col_save_code, col_save_btn = st.columns([2, 1])
+
+                                        with col_save_code:
+                                            save_code_name = st.text_input(
+                                                "Code name:",
+                                                value=f"generated_{selected_problem}_{st.session_state.custom_prompt_name}",
+                                                key="save_code_name_input",
+                                                help="Name for saving the generated code",
+                                            )
+
+                                        with col_save_btn:
+                                            if st.button(
+                                                "💾 Save Code",
+                                                key="save_generated_code",
+                                            ):
+                                                if save_code_name.strip():
+                                                    try:
+                                                        # Create saved_code directory if it doesn't exist
+                                                        import os
+
+                                                        os.makedirs(
+                                                            "saved_code", exist_ok=True
+                                                        )
+
+                                                        # Save with metadata
+                                                        filename = f"saved_code/{save_code_name.strip()}.py"
+                                                        metadata = f"""# Generated code saved from Prompt Lab
+# Problem: {selected_problem}
+# Template: {st.session_state.custom_prompt_name}
+# Score: {rr.transform_ran_and_matched_score}/{len(execution_outcomes)}
+# Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+"""
+                                                        with open(filename, "w") as f:
+                                                            f.write(
+                                                                metadata
+                                                                + code_as_string
+                                                            )
+                                                        st.success(
+                                                            f"✅ Code saved as: {filename}"
+                                                        )
+                                                    except Exception as e:
+                                                        st.error(f"❌ Save failed: {e}")
+                                                else:
+                                                    st.warning(
+                                                        "Please enter a code name"
+                                                    )
+
                                         if exception_message:
                                             st.error(
                                                 f"Execution error: {exception_message}"
@@ -871,6 +960,149 @@ def transform(initial):
         with col_info:
             st.info(
                 "💡 **Tip**: Saved templates will appear in the LLM Assistant tab for use"
+            )
+
+        # Saved Code Management
+        st.write("### Saved Generated Code")
+
+        # Check for saved code
+        saved_code_files = []
+        if Path("saved_code").exists():
+            saved_code_files = [f.name for f in Path("saved_code").glob("*.py")]
+
+        if saved_code_files:
+            st.write(f"Found {len(saved_code_files)} saved code files:")
+
+            # Create a table of saved code with metadata
+            saved_code_data = []
+            for filename in saved_code_files:
+                try:
+                    with open(f"saved_code/{filename}", "r") as f:
+                        content = f.read()
+
+                    # Extract metadata from comments
+                    lines = content.split("\n")
+                    metadata = {}
+                    for line in lines[:10]:  # Check first 10 lines for metadata
+                        if line.startswith("# Problem:"):
+                            metadata["Problem"] = line.replace("# Problem:", "").strip()
+                        elif line.startswith("# Template:"):
+                            metadata["Template"] = line.replace(
+                                "# Template:", ""
+                            ).strip()
+                        elif line.startswith("# Score:"):
+                            metadata["Score"] = line.replace("# Score:", "").strip()
+                        elif line.startswith("# Date:"):
+                            metadata["Date"] = line.replace("# Date:", "").strip()
+
+                    saved_code_data.append(
+                        {
+                            "Filename": filename,
+                            "Problem": metadata.get("Problem", "Unknown"),
+                            "Template": metadata.get("Template", "Unknown"),
+                            "Score": metadata.get("Score", "Unknown"),
+                            "Date": metadata.get("Date", "Unknown"),
+                        }
+                    )
+                except Exception as e:
+                    saved_code_data.append(
+                        {
+                            "Filename": filename,
+                            "Problem": "Error reading",
+                            "Template": "Error reading",
+                            "Score": "Error reading",
+                            "Date": "Error reading",
+                        }
+                    )
+
+            # Display as dataframe
+            df_saved = pd.DataFrame(saved_code_data)
+            st.dataframe(df_saved, use_container_width=True)
+
+            # Actions on saved code
+            col_load, col_delete, col_view = st.columns([1, 1, 1])
+
+            with col_load:
+                selected_to_load = st.selectbox(
+                    "Select code to load into editor:",
+                    ["Select..."] + saved_code_files,
+                    key="load_saved_selector",
+                )
+
+                if st.button(
+                    "📥 Load to Editor",
+                    help="Load selected code into the Code Editor tab",
+                ):
+                    if selected_to_load != "Select...":
+                        try:
+                            with open(f"saved_code/{selected_to_load}", "r") as f:
+                                saved_code_content = f.read()
+
+                            # Extract just the code part (remove metadata comments)
+                            lines = saved_code_content.split("\n")
+                            code_start = 0
+                            for i, line in enumerate(lines):
+                                if line.strip() and not line.strip().startswith("#"):
+                                    code_start = i
+                                    break
+
+                            clean_code = "\n".join(lines[code_start:])
+                            st.session_state.user_code = clean_code
+                            st.success(
+                                f"✅ Loaded {selected_to_load} into Code Editor!"
+                            )
+                        except Exception as e:
+                            st.error(f"Error loading code: {e}")
+                    else:
+                        st.warning("Please select a code file")
+
+            with col_view:
+                selected_to_view = st.selectbox(
+                    "Select code to preview:",
+                    ["Select..."] + saved_code_files,
+                    key="view_saved_selector",
+                )
+
+                if st.button("👁️ Preview Code", help="Preview the selected saved code"):
+                    if selected_to_view != "Select...":
+                        try:
+                            with open(f"saved_code/{selected_to_view}", "r") as f:
+                                code_content = f.read()
+
+                            with st.expander(
+                                f"Preview: {selected_to_view}", expanded=True
+                            ):
+                                st.code(code_content, language="python")
+                        except Exception as e:
+                            st.error(f"Error reading code: {e}")
+                    else:
+                        st.warning("Please select a code file")
+
+            with col_delete:
+                selected_to_delete = st.selectbox(
+                    "Select code to delete:",
+                    ["Select..."] + saved_code_files,
+                    key="delete_saved_selector",
+                )
+
+                if st.button(
+                    "🗑️ Delete Code", help="Delete the selected saved code file"
+                ):
+                    if selected_to_delete != "Select...":
+                        try:
+                            import os
+
+                            os.remove(f"saved_code/{selected_to_delete}")
+                            st.success(f"✅ Deleted {selected_to_delete}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error deleting code: {e}")
+                    else:
+                        st.warning("Please select a code file")
+
+        else:
+            st.info(
+                "No saved code found. Generate and save some code using the prompt testing above!"
             )
 
         # Show detailed test results if available
