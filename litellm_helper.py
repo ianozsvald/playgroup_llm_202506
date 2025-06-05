@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import litellm
@@ -22,7 +23,7 @@ def call_llm(model, messages, provider):
 
     Returns:
         response: litellm.Response object or None if failed"""
-    NBR_PROVIDER_RETRIES = 3
+    NBR_PROVIDER_RETRIES = 5
     # went_into_retry_section = False
     response = None
     for retry_n in range(NBR_PROVIDER_RETRIES):
