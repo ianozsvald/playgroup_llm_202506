@@ -31,7 +31,7 @@ load_dotenv()
 # litellm._turn_on_debug()
 
 
-def run_reflexion(model, provider, llm_responses, template_name):
+def run_reflexion(model, provider, llm_responses, template_name, problems):
     # take the initial prompt and run it, then make a decision
     # make a prompt
     NBR_REFLEXIONS = 3  # how many times to run the reflexion loop
@@ -81,7 +81,7 @@ def run_experiment(model, provider, iterations, problems, template_name):
     rr_trains = []
     for n in range(iterations):
         print(f"--------------------------\nPrompt {n}")
-        rr_train = run_reflexion(model, provider, llm_responses, template_name)
+        rr_train = run_reflexion(model, provider, llm_responses, template_name, problems)
         rr_trains.append(rr_train)
 
     return llm_responses, rr_trains
