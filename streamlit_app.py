@@ -563,50 +563,115 @@ def main():
                     ):
                         st.write(f"**Attempt {i+1}:**")
 
-                        # Show LLM response
-                        with st.expander(f"LLM Response {i+1}"):
-                            st.write(response.choices[0].message.content)
+                        # Show full LLM response prominently
+                        st.write("### 🤖 Complete LLM Response")
+                        full_response = response.choices[0].message.content
+                        with st.expander("Full LLM Response", expanded=True):
+                            st.markdown(full_response)
 
-                        # Show execution results
-                        rr, execution_outcomes, exception_message = rr_train
+                        # Extract and test code
+                        code_as_string = utils.extract_from_code_block(full_response)
 
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric(
-                                "Code Executed", "✅" if rr.code_did_execute else "❌"
-                            )
-                        with col2:
-                            st.metric(
-                                "All Correct",
-                                (
-                                    "✅"
-                                    if rr.transform_ran_and_matched_for_all_inputs
-                                    else "❌"
-                                ),
-                            )
-                        with col3:
-                            st.metric(
-                                "Score",
-                                f"{rr.transform_ran_and_matched_score}/{len(execution_outcomes) if execution_outcomes else 0}",
+                        if code_as_string:
+                            st.write("### 💻 Extracted Code")
+                            with st.expander("Generated Code", expanded=True):
+                                st.code(code_as_string, language="python")
+
+                            st.info("🔧 Testing code execution...")
+
+                            # Execute code
+                            train_problems = problem_data["train"]
+                            rr, execution_outcomes, exception_message = (
+                                execute_transform(code_as_string, train_problems)
                             )
 
-                        # If successful, offer to copy code
-                        if rr.transform_ran_and_matched_for_all_inputs:
-                            st.success("🎉 This solution works!")
-                            if st.button(
-                                f"Copy Solution {i+1} to Editor", key=f"copy_{i}"
-                            ):
-                                # Extract code from response
-                                code = utils.extract_from_code_block(
-                                    response.choices[0].message.content
+                            # Show quick results
+                            st.write("### 📊 Execution Results")
+                            col_result1, col_result2, col_result3 = st.columns(3)
+                            with col_result1:
+                                st.metric(
+                                    "Code Executed",
+                                    "✅" if rr.code_did_execute else "❌",
                                 )
-                                if code:
-                                    st.session_state.user_code = code
-                                    st.success("Code copied to editor!")
-                                    st.rerun()
+                            with col_result2:
+                                st.metric(
+                                    "All Correct",
+                                    (
+                                        "✅"
+                                        if rr.transform_ran_and_matched_for_all_inputs
+                                        else "❌"
+                                    ),
+                                )
+                            with col_result3:
+                                st.metric(
+                                    "Score",
+                                    f"{rr.transform_ran_and_matched_score}/{len(execution_outcomes) if execution_outcomes else 0}",
+                                )
 
-                        st.write("---")
+                            # Store results for detailed view
+                            st.session_state.prompt_test_results = (
+                                rr,
+                                execution_outcomes,
+                                exception_message,
+                                response,
+                                code_as_string,
+                            )
 
+                            # Add option to save the generated code
+                            if rr.transform_ran_and_matched_score > 0:  # Any success
+                                st.write("### 💾 Save Generated Code")
+                                col_save_code, col_save_btn = st.columns([2, 1])
+
+                                with col_save_code:
+                                    save_code_name = st.text_input(
+                                        "Code name:",
+                                        value=f"generated_{selected_problem}_{st.session_state.custom_prompt_name}",
+                                        key="save_code_name_input",
+                                        help="Name for saving the generated code",
+                                    )
+
+                                with col_save_btn:
+                                    if st.button(
+                                        "💾 Save Code", key="save_generated_code"
+                                    ):
+                                        if save_code_name.strip():
+                                            try:
+                                                # Create saved_code directory if it doesn't exist
+                                                import os
+
+                                                os.makedirs("saved_code", exist_ok=True)
+
+                                                # Save with metadata
+                                                filename = f"saved_code/{save_code_name.strip()}.py"
+                                                metadata = f"""# Generated code saved from Prompt Lab
+# Problem: {selected_problem}
+# Template: {st.session_state.custom_prompt_name}
+# Score: {rr.transform_ran_and_matched_score}/{len(execution_outcomes)}
+# Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+"""
+                                                with open(filename, "w") as f:
+                                                    f.write(metadata + code_as_string)
+                                                st.success(
+                                                    f"✅ Code saved as: {filename}"
+                                                )
+                                            except Exception as e:
+                                                st.error(f"❌ Save failed: {e}")
+                                        else:
+                                            st.warning("Please enter a code name")
+
+                            if exception_message:
+                                st.error(f"Execution error: {exception_message}")
+                        else:
+                            st.warning("⚠️ No code block found in LLM response")
+                            st.write("**Raw Response Preview:**")
+                            st.text(
+                                full_response[:500] + "..."
+                                if len(full_response) > 500
+                                else full_response
+                            )
+                    else:
+                        st.error("❌ No response from LLM")
                 except Exception as e:
                     st.error(f"LLM generation failed: {str(e)}")
                     st.write("**Traceback:**")
@@ -615,6 +680,38 @@ def main():
     with tab4:
         st.subheader("✍️ Prompt Lab")
         st.write("Create, edit, test, and save custom prompts for LLM code generation")
+
+        # Show current problem for reference
+        if problem_data:
+            st.write("### 🧩 Current Problem Reference")
+            with st.expander(
+                f"Problem {selected_problem} - Training Examples", expanded=False
+            ):
+                train_problems = problem_data["train"]
+                for i, example in enumerate(train_problems):
+                    st.write(f"**Example {i+1}:**")
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.write("Input:")
+                        display_grid_dataframe(
+                            example["input"], f"Input {i+1}", compact=True
+                        )
+
+                    with col2:
+                        st.write("Output:")
+                        display_grid_dataframe(
+                            example["output"], f"Output {i+1}", compact=True
+                        )
+
+                    if (
+                        i < len(train_problems) - 1
+                    ):  # Don't add separator after last example
+                        st.write("---")
+        else:
+            st.info(
+                "👈 Select a problem from the sidebar to see training examples here"
+            )
 
         # Template management section
         st.write("### Template Management")
@@ -643,27 +740,52 @@ def main():
                         template_path = f"templates/{selected_template_lab}"
                         with open(template_path, "r") as f:
                             template_content = f.read()
+
+                        # Force update session state
                         st.session_state.custom_prompt = template_content
                         st.session_state.custom_prompt_name = (
                             selected_template_lab.replace(".txt", "")
                         )
-                        st.success(f"Loaded template: {selected_template_lab}")
+
+                        # Clear any cached data
+                        if "preview_prompt" in st.session_state:
+                            del st.session_state.preview_prompt
+                        if "prompt_test_results" in st.session_state:
+                            del st.session_state.prompt_test_results
+
+                        st.success(f"✅ Loaded template: {selected_template_lab}")
+                        st.info("📝 Template content updated in editor below")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Error loading template: {e}")
+                        st.error(f"❌ Error loading template: {e}")
+                        st.error(f"Path attempted: {template_path}")
+                else:
+                    st.info("Select a template file to load")
 
         with col3:
-            # Template name input
-            if "custom_prompt_name" not in st.session_state:
-                st.session_state.custom_prompt_name = "my_custom_prompt"
+            # Force refresh button for debugging
+            if st.button(
+                "🔄 Force Refresh", help="Clear cache and refresh template list"
+            ):
+                # Clear relevant session state
+                if "preview_prompt" in st.session_state:
+                    del st.session_state.preview_prompt
+                if "prompt_test_results" in st.session_state:
+                    del st.session_state.prompt_test_results
+                st.success("🔄 Cache cleared!")
+                st.rerun()
 
-            new_name = st.text_input(
-                "Template name:",
-                value=st.session_state.custom_prompt_name,
-                key="prompt_name_input",
-                help="Name for saving the template (without .txt extension)",
-            )
-            st.session_state.custom_prompt_name = new_name
+        # Template name input
+        if "custom_prompt_name" not in st.session_state:
+            st.session_state.custom_prompt_name = "my_custom_prompt"
+
+        new_name = st.text_input(
+            "Template name:",
+            value=st.session_state.custom_prompt_name,
+            key="prompt_name_input",
+            help="Name for saving the template (without .txt extension)",
+        )
+        st.session_state.custom_prompt_name = new_name
 
         # Template editor
         st.write("### Template Editor")
@@ -813,19 +935,27 @@ def transform(initial):
                                 if response:
                                     st.success("✅ LLM responded successfully!")
 
-                                    # Show response
-                                    with st.expander("LLM Response", expanded=False):
-                                        st.write(response.choices[0].message.content)
+                                    # Show full response prominently
+                                    st.write("### 🤖 Complete LLM Response")
+                                    full_response = response.choices[0].message.content
+                                    with st.expander(
+                                        "Full LLM Response", expanded=True
+                                    ):
+                                        st.markdown(full_response)
 
                                     # Extract and test code
                                     code_as_string = utils.extract_from_code_block(
-                                        response.choices[0].message.content
+                                        full_response
                                     )
 
                                     if code_as_string:
-                                        st.info(
-                                            "🔧 Code extracted, testing execution..."
-                                        )
+                                        st.write("### 💻 Extracted Code")
+                                        with st.expander(
+                                            "Generated Code", expanded=True
+                                        ):
+                                            st.code(code_as_string, language="python")
+
+                                        st.info("🔧 Testing code execution...")
 
                                         # Execute code
                                         train_problems = problem_data["train"]
@@ -836,6 +966,7 @@ def transform(initial):
                                         )
 
                                         # Show quick results
+                                        st.write("### 📊 Execution Results")
                                         col_result1, col_result2, col_result3 = (
                                             st.columns(3)
                                         )
@@ -869,54 +1000,64 @@ def transform(initial):
                                         )
 
                                         # Add option to save the generated code
-                                        st.write("**💾 Save Generated Code:**")
-                                        col_save_code, col_save_btn = st.columns([2, 1])
-
-                                        with col_save_code:
-                                            save_code_name = st.text_input(
-                                                "Code name:",
-                                                value=f"generated_{selected_problem}_{st.session_state.custom_prompt_name}",
-                                                key="save_code_name_input",
-                                                help="Name for saving the generated code",
+                                        if (
+                                            rr.transform_ran_and_matched_score > 0
+                                        ):  # Any success
+                                            st.write("### 💾 Save Generated Code")
+                                            col_save_code, col_save_btn = st.columns(
+                                                [2, 1]
                                             )
 
-                                        with col_save_btn:
-                                            if st.button(
-                                                "💾 Save Code",
-                                                key="save_generated_code",
-                                            ):
-                                                if save_code_name.strip():
-                                                    try:
-                                                        # Create saved_code directory if it doesn't exist
-                                                        import os
+                                            with col_save_code:
+                                                save_code_name = st.text_input(
+                                                    "Code name:",
+                                                    value=f"generated_{selected_problem}_{st.session_state.custom_prompt_name}",
+                                                    key="save_code_name_input",
+                                                    help="Name for saving the generated code",
+                                                )
 
-                                                        os.makedirs(
-                                                            "saved_code", exist_ok=True
-                                                        )
+                                            with col_save_btn:
+                                                if st.button(
+                                                    "💾 Save Code",
+                                                    key="save_generated_code",
+                                                ):
+                                                    if save_code_name.strip():
+                                                        try:
+                                                            # Create saved_code directory if it doesn't exist
+                                                            import os
 
-                                                        # Save with metadata
-                                                        filename = f"saved_code/{save_code_name.strip()}.py"
-                                                        metadata = f"""# Generated code saved from Prompt Lab
+                                                            os.makedirs(
+                                                                "saved_code",
+                                                                exist_ok=True,
+                                                            )
+
+                                                            # Save with metadata
+                                                            filename = f"saved_code/{save_code_name.strip()}.py"
+                                                            metadata = f"""# Generated code saved from Prompt Lab
 # Problem: {selected_problem}
 # Template: {st.session_state.custom_prompt_name}
 # Score: {rr.transform_ran_and_matched_score}/{len(execution_outcomes)}
 # Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 """
-                                                        with open(filename, "w") as f:
-                                                            f.write(
-                                                                metadata
-                                                                + code_as_string
+                                                            with open(
+                                                                filename, "w"
+                                                            ) as f:
+                                                                f.write(
+                                                                    metadata
+                                                                    + code_as_string
+                                                                )
+                                                            st.success(
+                                                                f"✅ Code saved as: {filename}"
                                                             )
-                                                        st.success(
-                                                            f"✅ Code saved as: {filename}"
+                                                        except Exception as e:
+                                                            st.error(
+                                                                f"❌ Save failed: {e}"
+                                                            )
+                                                    else:
+                                                        st.warning(
+                                                            "Please enter a code name"
                                                         )
-                                                    except Exception as e:
-                                                        st.error(f"❌ Save failed: {e}")
-                                                else:
-                                                    st.warning(
-                                                        "Please enter a code name"
-                                                    )
 
                                         if exception_message:
                                             st.error(
@@ -925,6 +1066,12 @@ def transform(initial):
                                     else:
                                         st.warning(
                                             "⚠️ No code block found in LLM response"
+                                        )
+                                        st.write("**Raw Response Preview:**")
+                                        st.text(
+                                            full_response[:500] + "..."
+                                            if len(full_response) > 500
+                                            else full_response
                                         )
                                 else:
                                     st.error("❌ No response from LLM")
