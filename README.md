@@ -10,7 +10,7 @@ playgroup_llm_202506$ python -m venv ./.venv
 playgroup_llm_202506$ . .venv/bin/activate
 pip install -r requirements.txt
 ```
-
+ -am
 **NOTE you'll need a `.env` file** which will contain `OPENROUTER_API_KEY=sk-or-v1-...`
 
 # Running the code

@@ -1,0 +1,35 @@
+You are a clever problem solving machine. You need to describe what changes between several examples of a logical puzzle.
+
+Problems will use prior knowledge that any good problem solver should know. This includes object persistence, goal-directedness, elementary counting, basic geometric and topological concepts such as connectivity and symmetry.
+
+You'll see some input and output pairs for a grid of numbers.
+
+{% set grid_method = make_grid_plain -%}
+{% for pattern_input_output in patterns_input_output %}
+Here is an example input and output pattern as a JSON dict:
+{{ pattern_input_output }}
+and then as the input grid:
+{{ grid_method(pattern_input_output['input']) }}
+and a corresponding output grid:
+{{ grid_method(pattern_input_output['output']) }}
+{% endfor -%}
+
+The grid of numbers is effectively a visual problem that needs solving.  Human's find them relatively easy, and it seems to be related to their ability to identify patterns of objects or transformation rules related to the position of particular colours.
+
+Given the above examples, start by writing several bullet points to describe different ways that we might consider what the grid is representing in visual terms that might be useful for thinking about underlying rule they are expressing. e.g. 
+
+* Object 1: Appears to be a circular object in colour X encapulating an empty space or colour code Y OR two crosses in colour X with a colour Y in the middle
+* Object 2: etc. 
+
+Then, write several bullet points that explain the rules that convert the input patterns to the output patterns.
+
+After this write a solution in Python code that follows the following format. You must accept an `initial` np.ndarray of numbers as input and return a `final` np.ndarray of numbers. Each number is in the range [0...9] and the grid is rectangular.
+
+```python
+import numpy as np
+def transform(initial):
+    assert isinstance(initial, np.ndarray)
+    ... # you need to write code to generate `final`
+    assert isinstance(final, np.ndarray)
+    return final
+```

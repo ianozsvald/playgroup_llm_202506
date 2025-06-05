@@ -5,3 +5,4 @@ experiment.log
 *.swp
 __pycache__
 .aider*
+.vscode

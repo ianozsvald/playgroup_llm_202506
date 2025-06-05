@@ -1,18 +1,19 @@
-import streamlit as st
-import numpy as np
-import pandas as pd
+import argparse
 import json
 import traceback
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import streamlit as st
+
 # Import existing modules
 import utils
-from run_code import execute_transform
-from prompt import make_prompt, get_func_dict
-from method1_text_prompt import run_experiment_for_iterations
 from config import providers
-from litellm_helper import check_litellm_key, call_llm
-import argparse
+from litellm_helper import call_llm, check_litellm_key
+from method1_text_prompt import run_experiment_for_iterations
+from prompt import get_func_dict, make_prompt
+from run_code import execute_transform
 
 # Configure page
 st.set_page_config(
@@ -70,7 +71,7 @@ ARC_COLORS = {
 
 def display_grid_dataframe(grid, title="Grid", compact=False):
     """Display grid as a colored dataframe"""
-    if not grid:
+    if grid is None or (hasattr(grid, "size") and grid.size == 0):
         st.write("Empty grid")
         return
 
@@ -91,7 +92,7 @@ def display_grid_dataframe(grid, title="Grid", compact=False):
         st.write(f"**{title}**")
 
     # Display the styled dataframe
-    styled_df = df.style.applymap(color_cells)
+    styled_df = df.style.applymap(color_cells)  # type: ignore
     styled_df = styled_df.set_table_styles(
         [
             {"selector": "th", "props": [("display", "none")]},  # Hide column headers
@@ -608,6 +609,55 @@ def main():
                                     f"{rr.transform_ran_and_matched_score}/{len(execution_outcomes) if execution_outcomes else 0}",
                                 )
 
+                            # Show detailed grid comparisons
+                            if execution_outcomes:
+                                st.write("### 🎯 Grid Comparisons")
+
+                                for i, eo in enumerate(execution_outcomes):
+                                    st.write(f"**Example {i+1}:**")
+
+                                    col1, col2, col3 = st.columns(3)
+
+                                    with col1:
+                                        st.write("Input:")
+                                        display_grid_dataframe(
+                                            eo.initial, f"Input {i+1}", compact=True
+                                        )
+
+                                    with col2:
+                                        st.write("Expected:")
+                                        display_grid_dataframe(
+                                            eo.final, f"Expected {i+1}", compact=True
+                                        )
+
+                                    with col3:
+                                        st.write("Generated:")
+                                        if eo.generated_final is not None:
+                                            display_grid_dataframe(
+                                                eo.generated_final,
+                                                f"Generated {i+1}",
+                                                compact=True,
+                                            )
+
+                                            # Show status
+                                            if eo.was_correct:
+                                                st.markdown(
+                                                    '<p class="status-correct">✅ Correct</p>',
+                                                    unsafe_allow_html=True,
+                                                )
+                                            else:
+                                                st.markdown(
+                                                    '<p class="status-incorrect">❌ Incorrect</p>',
+                                                    unsafe_allow_html=True,
+                                                )
+                                        else:
+                                            st.write("*No output generated*")
+
+                                    if (
+                                        i < len(execution_outcomes) - 1
+                                    ):  # Don't add separator after last example
+                                        st.write("---")
+
                             # Store results for detailed view
                             st.session_state.prompt_test_results = (
                                 rr,
@@ -727,13 +777,52 @@ def main():
                     ["Create new..."] + template_files,
                     key="template_lab_selector",
                 )
+
+                # Auto-load template when selection changes
+                if selected_template_lab != "Create new...":
+                    # Check if this is a new selection
+                    if (
+                        "last_selected_template" not in st.session_state
+                        or st.session_state.last_selected_template
+                        != selected_template_lab
+                    ):
+                        try:
+                            template_path = f"templates/{selected_template_lab}"
+                            with open(template_path, "r") as f:
+                                template_content = f.read()
+
+                            # Force update session state
+                            st.session_state.custom_prompt = template_content
+                            st.session_state.custom_prompt_name = (
+                                selected_template_lab.replace(".txt", "")
+                            )
+                            st.session_state.last_selected_template = (
+                                selected_template_lab
+                            )
+
+                            # Clear any cached data
+                            if "preview_prompt" in st.session_state:
+                                del st.session_state.preview_prompt
+                            if "prompt_test_results" in st.session_state:
+                                del st.session_state.prompt_test_results
+
+                            st.success(
+                                f"✅ Auto-loaded template: {selected_template_lab}"
+                            )
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error auto-loading template: {e}")
+                else:
+                    # Reset when "Create new..." is selected
+                    if "last_selected_template" in st.session_state:
+                        del st.session_state.last_selected_template
             else:
                 selected_template_lab = "Create new..."
                 st.info("No existing templates found")
 
         with col2:
             if st.button(
-                "📁 Load Template", help="Load the selected template for editing"
+                "📁 Manual Load", help="Manually reload the selected template"
             ):
                 if selected_template_lab != "Create new...":
                     try:
@@ -753,7 +842,9 @@ def main():
                         if "prompt_test_results" in st.session_state:
                             del st.session_state.prompt_test_results
 
-                        st.success(f"✅ Loaded template: {selected_template_lab}")
+                        st.success(
+                            f"✅ Manually reloaded template: {selected_template_lab}"
+                        )
                         st.info("📝 Template content updated in editor below")
                         st.rerun()
                     except Exception as e:
@@ -874,7 +965,7 @@ def transform(initial):
             ):
                 if problem_data:
                     try:
-                        from jinja2 import Environment, BaseLoader, Template
+                        from jinja2 import BaseLoader, Environment, Template
 
                         # Create template
                         template = Template(custom_prompt)
@@ -888,14 +979,6 @@ def transform(initial):
 
                         st.success("✅ Template rendered successfully!")
 
-                        with st.expander("Preview Rendered Prompt", expanded=True):
-                            st.text_area(
-                                "Rendered Prompt:",
-                                value=rendered_prompt,
-                                height=300,
-                                disabled=True,
-                            )
-
                         # Store for testing
                         st.session_state.preview_prompt = rendered_prompt
 
@@ -905,12 +988,44 @@ def transform(initial):
                 else:
                     st.warning("Please select a problem first to preview the template")
 
+        # Always show preview if available
+        if st.session_state.get("preview_prompt"):
+            with st.expander("Preview Rendered Prompt", expanded=False):
+                st.text_area(
+                    "Rendered Prompt:",
+                    value=st.session_state.preview_prompt,
+                    height=300,
+                    disabled=True,
+                )
+
         with col_test:
             if st.button(
                 "🧪 Test Prompt",
                 help="Test the prompt with LLM and execute generated code",
             ):
-                if problem_data and st.session_state.get("preview_prompt"):
+                if problem_data:
+                    # First ensure we have a preview
+                    if not st.session_state.get("preview_prompt"):
+                        try:
+                            from jinja2 import BaseLoader, Environment, Template
+
+                            # Create template
+                            template = Template(custom_prompt)
+                            func_dict = get_func_dict()
+                            template.globals.update(func_dict)
+
+                            # Render with current problem data
+                            rendered_prompt = template.render(
+                                patterns_input_output=problem_data["train"]
+                            )
+
+                            # Store for testing
+                            st.session_state.preview_prompt = rendered_prompt
+
+                        except Exception as e:
+                            st.error(f"❌ Template rendering failed: {e}")
+                            return
+
                     with st.spinner("Testing prompt with LLM..."):
                         try:
                             # Get LLM settings from main tab
@@ -989,6 +1104,61 @@ def transform(initial):
                                                 "Score",
                                                 f"{rr.transform_ran_and_matched_score}/{len(execution_outcomes) if execution_outcomes else 0}",
                                             )
+
+                                        # Show detailed grid comparisons
+                                        if execution_outcomes:
+                                            st.write("### 🎯 Grid Comparisons")
+
+                                            for i, eo in enumerate(execution_outcomes):
+                                                st.write(f"**Example {i+1}:**")
+
+                                                col1, col2, col3 = st.columns(3)
+
+                                                with col1:
+                                                    st.write("Input:")
+                                                    display_grid_dataframe(
+                                                        eo.initial,
+                                                        f"Input {i+1}",
+                                                        compact=True,
+                                                    )
+
+                                                with col2:
+                                                    st.write("Expected:")
+                                                    display_grid_dataframe(
+                                                        eo.final,
+                                                        f"Expected {i+1}",
+                                                        compact=True,
+                                                    )
+
+                                                with col3:
+                                                    st.write("Generated:")
+                                                    if eo.generated_final is not None:
+                                                        display_grid_dataframe(
+                                                            eo.generated_final,
+                                                            f"Generated {i+1}",
+                                                            compact=True,
+                                                        )
+
+                                                        # Show status
+                                                        if eo.was_correct:
+                                                            st.markdown(
+                                                                '<p class="status-correct">✅ Correct</p>',
+                                                                unsafe_allow_html=True,
+                                                            )
+                                                        else:
+                                                            st.markdown(
+                                                                '<p class="status-incorrect">❌ Incorrect</p>',
+                                                                unsafe_allow_html=True,
+                                                            )
+                                                    else:
+                                                        st.write(
+                                                            "*No output generated*"
+                                                        )
+
+                                                if (
+                                                    i < len(execution_outcomes) - 1
+                                                ):  # Don't add separator after last example
+                                                    st.write("---")
 
                                         # Store results for detailed view
                                         st.session_state.prompt_test_results = (
