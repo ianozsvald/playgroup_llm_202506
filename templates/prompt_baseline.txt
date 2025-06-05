@@ -6,7 +6,7 @@ In addition you may need to compose partial ideas together, so you need to obser
 
 You'll see some input and output pairs for a grid of numbers.
 
-{% set grid_method = make_grid_plain -%}
+{% set grid_method = make_grid_csv_quoted -%}
 {% for pattern_input_output in patterns_input_output %}
 Here is an example input and output pattern as a JSON dict:
 {{ pattern_input_output }} 
