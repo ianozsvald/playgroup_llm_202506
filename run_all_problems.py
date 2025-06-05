@@ -64,10 +64,13 @@ if __name__ == "__main__":
 
         model = args.model_name
 
-        llm_responses, rr_trains = method1_text_prompt.run_experiment_for_iterations(
+        #entry_point = method1_text_prompt.run_experiment_for_iterations
+        import method3_reflexion
+        entry_point = method3_reflexion.run_experiment
+        llm_responses, rr_trains = entry_point(
             model=model,
             provider=providers[args.model_name],
-            iterations=1,  # fix 1 iteration in when running all problems
+            iterations=1,
             problems=problems,
             template_name=args.template_name,
         )
