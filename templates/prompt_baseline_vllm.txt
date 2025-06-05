@@ -4,6 +4,8 @@ Here you have an image that shows two grids side by side for a logical puzzle.
 
 The left grid is the "before" state and the right grid is the "after" state.
 
+The grids are each 7 by 7 cells.
+
 The grids may be the same or different sizes. They will contain colours that correspond to the numbers 0 to 9, so there are 10 possible unique colours. The colours may represent shapes.
 
 First - describe the grids. What can you see? How large are they?

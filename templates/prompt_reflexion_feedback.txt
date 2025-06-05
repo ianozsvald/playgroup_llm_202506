@@ -1,4 +1,4 @@
-{% set grid_method = make_grid_plain %}
+{% set grid_method = make_grid_csv_quoted %}
 {% for rr_eo in rr_eos -%}
 Given this input
 {{ grid_method(rr_eo.initial) }}

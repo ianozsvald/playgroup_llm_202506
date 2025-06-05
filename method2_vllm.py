@@ -42,7 +42,7 @@ if __name__ == "__main__":
     image_path = "test_images/small_problem_pair.png"
     print(f"Using {image_path=}")
     base64_image = encode_image_to_base64(image_path)
-    data_url = f"data:image/jpeg;base64,{base64_image}"
+    data_url = f"data:image/png;base64,{base64_image}"
 
     func_dict = get_func_dict()
     prompt = make_prompt(
