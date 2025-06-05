@@ -12,4 +12,4 @@ dotenv
 isort
 pytest-cov
 streamlit
-matplotlib
+pandas

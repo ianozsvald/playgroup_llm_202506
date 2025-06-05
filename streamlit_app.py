@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+import pandas as pd
 import json
 import traceback
 from pathlib import Path
@@ -69,45 +68,42 @@ ARC_COLORS = {
 }
 
 
-def plot_grid(grid, title="Grid", figsize=(4, 4)):
-    """Plot an ARC grid with proper colors"""
+def display_grid_dataframe(grid, title="Grid", compact=False):
+    """Display grid as a colored dataframe"""
+    if not grid:
+        st.write("Empty grid")
+        return
+
     grid = np.array(grid)
-    fig, ax = plt.subplots(figsize=figsize)
+    df = pd.DataFrame(grid)
 
-    # Create color map
-    colors = [ARC_COLORS[i] for i in range(10)]
-    cmap = mcolors.ListedColormap(colors)
+    # Create color styling function
+    def color_cells(val):
+        color = ARC_COLORS.get(val, "#FFFFFF")
+        # Use white text for dark colors, black text for light colors
+        # Dark colors: 0 (black), 2 (red), 9 (maroon), 1 (blue)
+        text_color = "white" if val in [0, 1, 2, 9] else "black"
+        font_size = "12px" if compact else "16px"
+        padding = "4px 8px" if compact else "8px 12px"
+        return f"background-color: {color}; color: {text_color}; font-weight: bold; text-align: center; font-size: {font_size}; padding: {padding}; border: 1px solid #333;"
 
-    # Plot the grid
-    im = ax.imshow(grid, cmap=cmap, vmin=0, vmax=9)
+    if title:
+        st.write(f"**{title}**")
 
-    # Add grid lines
-    ax.set_xticks(np.arange(-0.5, grid.shape[1], 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, grid.shape[0], 1), minor=True)
-    ax.grid(which="minor", color="white", linestyle="-", linewidth=2)
-    ax.tick_params(which="minor", size=0)
+    # Display the styled dataframe
+    styled_df = df.style.applymap(color_cells)
+    styled_df = styled_df.set_table_styles(
+        [
+            {"selector": "th", "props": [("display", "none")]},  # Hide column headers
+            {"selector": "td", "props": [("border", "1px solid #333")]},  # Add borders
+            {
+                "selector": "",
+                "props": [("border-collapse", "collapse")],
+            },  # Collapse borders
+        ]
+    )
 
-    # Remove major ticks
-    ax.set_xticks([])
-    ax.set_yticks([])
-
-    # Add numbers in cells
-    for i in range(grid.shape[0]):
-        for j in range(grid.shape[1]):
-            ax.text(
-                j,
-                i,
-                str(grid[i, j]),
-                ha="center",
-                va="center",
-                color="white",
-                fontweight="bold",
-                fontsize=8,
-            )
-
-    ax.set_title(title, fontweight="bold")
-    plt.tight_layout()
-    return fig
+    st.dataframe(styled_df, use_container_width=False, hide_index=True)
 
 
 def get_available_problems():
@@ -154,15 +150,11 @@ def display_training_examples(problem_data):
 
         with col1:
             st.write("Input:")
-            fig_input = plot_grid(example["input"], f"Input {i+1}")
-            st.pyplot(fig_input)
-            plt.close()
+            display_grid_dataframe(example["input"], f"Input {i+1}")
 
         with col2:
             st.write("Output:")
-            fig_output = plot_grid(example["output"], f"Output {i+1}")
-            st.pyplot(fig_output)
-            plt.close()
+            display_grid_dataframe(example["output"], f"Output {i+1}")
 
         st.write("---")
 
@@ -180,16 +172,12 @@ def display_test_examples(problem_data):
 
         with col1:
             st.write("Input:")
-            fig_input = plot_grid(example["input"], f"Test Input {i+1}")
-            st.pyplot(fig_input)
-            plt.close()
+            display_grid_dataframe(example["input"], f"Test Input {i+1}")
 
         with col2:
             if "output" in example:
                 st.write("Expected Output:")
-                fig_output = plot_grid(example["output"], f"Expected Output {i+1}")
-                st.pyplot(fig_output)
-                plt.close()
+                display_grid_dataframe(example["output"], f"Expected Output {i+1}")
             else:
                 st.write("Output: *Hidden*")
 
@@ -233,24 +221,18 @@ def display_execution_results(rr, execution_outcomes, exception_message):
 
             with col1:
                 st.write("Input:")
-                fig_input = plot_grid(eo.initial, f"Input {i+1}", figsize=(3, 3))
-                st.pyplot(fig_input)
-                plt.close()
+                display_grid_dataframe(eo.initial, f"Input {i+1}", compact=True)
 
             with col2:
                 st.write("Expected:")
-                fig_expected = plot_grid(eo.final, f"Expected {i+1}", figsize=(3, 3))
-                st.pyplot(fig_expected)
-                plt.close()
+                display_grid_dataframe(eo.final, f"Expected {i+1}", compact=True)
 
             with col3:
                 st.write("Generated:")
                 if eo.generated_final is not None:
-                    fig_generated = plot_grid(
-                        eo.generated_final, f"Generated {i+1}", figsize=(3, 3)
+                    display_grid_dataframe(
+                        eo.generated_final, f"Generated {i+1}", compact=True
                     )
-                    st.pyplot(fig_generated)
-                    plt.close()
 
                     # Show status
                     if eo.was_correct:
