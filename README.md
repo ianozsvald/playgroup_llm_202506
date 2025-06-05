@@ -15,6 +15,25 @@ pip install -r requirements.txt
 
 # Running the code
 
+## 🆕 Streamlit Web Interface (Recommended)
+
+The easiest way to get started is with the new interactive web interface:
+
+```bash
+python run_streamlit.py
+```
+
+This will launch a web application that provides:
+- 🧩 Visual grid display of ARC puzzles with proper colors
+- 💻 Interactive code editor with syntax highlighting
+- 🤖 LLM-powered solution generation
+- 📊 Real-time execution results and analysis
+- 🎯 Side-by-side comparison of expected vs generated outputs
+
+Navigate to `http://localhost:8501` in your browser to access the interface.
+
+## 📟 Command Line Interface (Original)
+
 * `prompt.py` - see how prompts render
 * `run_code.py` - execute code on a particular problem
 * `method1_text_prompt.py` - run a single prompt many times on 1 problem
@@ -42,4 +61,4 @@ pip install -r requirements.txt
   * can we make it describe the image well?
   * can we vibe-code an image generator for a specified problem?
   * can we get it to write code?
-* Run `python method3_reflexion.py`, does giving feedback help? 
+* Run `python method3_reflexion.py`, does giving feedback help?

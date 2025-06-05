@@ -55,7 +55,7 @@ def execute_transform(code_as_line, problems):
         try:
             # n_jobs = 1 for serial process
             # result_chunks = joblib.Parallel(n_jobs=len(problems), timeout=1)(
-            result_chunks = joblib.Parallel(n_jobs=n_jobs, timeout=1)(
+            result_chunks = joblib.Parallel(n_jobs=n_jobs, timeout=10)(
                 joblib.delayed(exec_and_run)(
                     code_as_line, np.array(copy.deepcopy(prob["input"]))
                 )

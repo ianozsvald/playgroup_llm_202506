@@ -11,3 +11,5 @@ litellm
 dotenv
 isort
 pytest-cov
+streamlit
+matplotlib
