@@ -3,6 +3,9 @@ import sys
 from litellm_helper import call_llm, check_litellm_key, disable_litellm_logging
 from utils import add_argument_parser
 
+import dotenv
+dotenv.load_dotenv()
+
 if __name__ == "__main__":
     # NOTE litellm.py automagically loads .env file with the OPENROUTER_API_KEY
     try: 
